@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A/B タイマー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 40px;
+    }
+
+    h1 { font-size: 1.4rem; letter-spacing: 2px; color: #aaa; }
+
+    .timers {
+      display: flex;
+      gap: 40px;
+    }
+
+    .timer-block {
+      background: #16213e;
+      border: 2px solid #333;
+      border-radius: 16px;
+      padding: 30px 24px;
+      text-align: center;
+      width: 220px;
+      min-width: 0;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .timer-block.active {
+      border-color: #e94560;
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+    }
+
+    .timer-block .label {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 16px;
+      letter-spacing: 1px;
+      color: #ccc;
+    }
+
+    .timer-block .time {
+      font-size: 2.2rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .timer-block.active .time {
+      color: #e94560;
+    }
+
+    .controls {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      letter-spacing: 1px;
+    }
+
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    #btn-start {
+      background: #0f3460;
+      color: #fff;
+      border: 2px solid #4ecca3;
+    }
+
+    #btn-a {
+      background: #e94560;
+      color: #fff;
+      min-width: 120px;
+    }
+
+    #btn-b {
+      background: #4ecca3;
+      color: #1a1a2e;
+      min-width: 120px;
+    }
+
+    #btn-stop {
+      background: #333;
+      color: #fff;
+      border: 2px solid #666;
+    }
+
+    #btn-reset {
+      background: transparent;
+      color: #888;
+      border: 2px solid #444;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: #666;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <h1>A / B TIMER</h1>
+
+  <div class="timers">
+    <div class="timer-block" id="block-a">
+      <div class="label">A</div>
+      <div class="time" id="display-a">00:00.0</div>
+    </div>
+    <div class="timer-block" id="block-b">
+      <div class="label">B</div>
+      <div class="time" id="display-b">00:00.0</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btn-start">▶ スタート</button>
+    <button id="btn-a" disabled>A</button>
+    <button id="btn-b" disabled>B</button>
+    <button id="btn-stop" disabled>■ 停止</button>
+    <button id="btn-reset">↺ リセット</button>
+  </div>
+
+  <div class="status" id="status">スタートボタンを押してください</div>
+
+  <script>
+    let timeA = 0, timeB = 0;
+    let activeTimer = null; // 'a' | 'b' | null
+    let intervalId = null;
+    let running = false;
+    const TICK = 100; // ms
+
+    const displayA = document.getElementById('display-a');
+    const displayB = document.getElementById('display-b');
+    const blockA   = document.getElementById('block-a');
+    const blockB   = document.getElementById('block-b');
+    const status   = document.getElementById('status');
+
+    const btnStart = document.getElementById('btn-start');
+    const btnA     = document.getElementById('btn-a');
+    const btnB     = document.getElementById('btn-b');
+    const btnStop  = document.getElementById('btn-stop');
+    const btnReset = document.getElementById('btn-reset');
+
+    function fmt(ms) {
+      const total = Math.floor(ms / 100);
+      const tenth = total % 10;
+      const secs  = Math.floor(total / 10) % 60;
+      const mins  = Math.floor(total / 600);
+      return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}.${tenth}`;
+    }
+
+    function render() {
+      displayA.textContent = fmt(timeA);
+      displayB.textContent = fmt(timeB);
+      blockA.classList.toggle('active', activeTimer === 'a');
+      blockB.classList.toggle('active', activeTimer === 'b');
+    }
+
+    function tick() {
+      if (activeTimer === 'a') timeA += TICK;
+      else if (activeTimer === 'b') timeB += TICK;
+      render();
+    }
+
+    function setStatus(msg) { status.textContent = msg; }
+
+    btnStart.addEventListener('click', () => {
+      running = true;
+      activeTimer = null;
+      intervalId = setInterval(tick, TICK);
+
+      btnStart.disabled = true;
+      btnA.disabled = false;
+      btnB.disabled = false;
+      btnStop.disabled = false;
+      setStatus('A または B を押してタイマーを切り替えてください');
+    });
+
+    btnA.addEventListener('click', () => {
+      if (!running) return;
+      activeTimer = 'a';
+      render();
+      setStatus('A のタイマー計測中...');
+    });
+
+    btnB.addEventListener('click', () => {
+      if (!running) return;
+      activeTimer = 'b';
+      render();
+      setStatus('B のタイマー計測中...');
+    });
+
+    btnStop.addEventListener('click', () => {
+      clearInterval(intervalId);
+      intervalId = null;
+      running = false;
+      activeTimer = null;
+
+      btnStart.disabled = true;
+      btnA.disabled = true;
+      btnB.disabled = true;
+      btnStop.disabled = true;
+
+      blockA.classList.remove('active');
+      blockB.classList.remove('active');
+      setStatus('停止しました');
+    });
+
+    btnReset.addEventListener('click', () => {
+      clearInterval(intervalId);
+      intervalId = null;
+      running = false;
+      activeTimer = null;
+      timeA = 0; timeB = 0;
+
+      btnStart.disabled = false;
+      btnA.disabled = true;
+      btnB.disabled = true;
+      btnStop.disabled = true;
+
+      render();
+      setStatus('スタートボタンを押してください');
+    });
+
+    render();
+  </script>
+</body>
+</html>
