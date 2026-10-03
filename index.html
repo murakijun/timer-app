@@ -307,6 +307,12 @@
       setStatus('スタートボタンを押してください');
     });
 
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return; // 名前編集中は無視
+      if (e.key === 'a' || e.key === 'A') btnA.click();
+      if (e.key === 'b' || e.key === 'B') btnB.click();
+    });
+
     render();
   </script>
 </body>
