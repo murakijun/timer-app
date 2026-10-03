@@ -49,6 +49,33 @@
       margin-bottom: 16px;
       letter-spacing: 1px;
       color: #ccc;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .timer-block .label:hover .edit-icon { opacity: 1; }
+
+    .edit-icon {
+      font-size: 0.75rem;
+      opacity: 0.3;
+      transition: opacity 0.2s;
+    }
+
+    .label-input {
+      background: #0d1b35;
+      border: 1px solid #4ecca3;
+      border-radius: 6px;
+      color: #eee;
+      font-size: 1.1rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+      width: 140px;
+      padding: 2px 6px;
+      outline: none;
     }
 
     .timer-block .time {
@@ -125,11 +152,11 @@
 
   <div class="timers">
     <div class="timer-block" id="block-a">
-      <div class="label">A</div>
+      <div class="label" id="label-a"><span id="name-a">A</span><span class="edit-icon">✏️</span></div>
       <div class="time" id="display-a">00:00.0</div>
     </div>
     <div class="timer-block" id="block-b">
-      <div class="label">B</div>
+      <div class="label" id="label-b"><span id="name-b">B</span><span class="edit-icon">✏️</span></div>
       <div class="time" id="display-b">00:00.0</div>
     </div>
   </div>
@@ -162,6 +189,10 @@
     const btnB     = document.getElementById('btn-b');
     const btnStop  = document.getElementById('btn-stop');
     const btnReset = document.getElementById('btn-reset');
+    const nameA    = document.getElementById('name-a');
+    const nameB    = document.getElementById('name-b');
+    const labelA   = document.getElementById('label-a');
+    const labelB   = document.getElementById('label-b');
 
     function fmt(ms) {
       const total = Math.floor(ms / 100);
@@ -186,6 +217,38 @@
 
     function setStatus(msg) { status.textContent = msg; }
 
+    function startEditing(labelEl, nameEl, btnEl) {
+      const current = nameEl.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'label-input';
+      input.value = current;
+      input.maxLength = 12;
+
+      labelEl.innerHTML = '';
+      labelEl.appendChild(input);
+      input.focus();
+      input.select();
+
+      function commit() {
+        const val = input.value.trim() || current;
+        nameEl.textContent = val;
+        labelEl.innerHTML = '';
+        labelEl.appendChild(nameEl);
+        labelEl.insertAdjacentHTML('beforeend', '<span class="edit-icon">✏️</span>');
+        btnEl.textContent = val;
+      }
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') { input.value = current; input.blur(); }
+      });
+    }
+
+    labelA.addEventListener('click', () => startEditing(labelA, nameA, btnA));
+    labelB.addEventListener('click', () => startEditing(labelB, nameB, btnB));
+
     btnStart.addEventListener('click', () => {
       running = true;
       activeTimer = null;
@@ -195,21 +258,21 @@
       btnA.disabled = false;
       btnB.disabled = false;
       btnStop.disabled = false;
-      setStatus('A または B を押してタイマーを切り替えてください');
+      setStatus(`${nameA.textContent} または ${nameB.textContent} を押してタイマーを切り替えてください`);
     });
 
     btnA.addEventListener('click', () => {
       if (!running) return;
       activeTimer = 'a';
       render();
-      setStatus('A のタイマー計測中...');
+      setStatus(`${nameA.textContent} のタイマー計測中...`);
     });
 
     btnB.addEventListener('click', () => {
       if (!running) return;
       activeTimer = 'b';
       render();
-      setStatus('B のタイマー計測中...');
+      setStatus(`${nameB.textContent} のタイマー計測中...`);
     });
 
     btnStop.addEventListener('click', () => {
